@@ -1,0 +1,27 @@
+# Configuration file for Alchemist package
+# version: 1.0
+# Author: CraigVWang
+
+data:
+  data_dir: "./data"
+  input:
+    base_dir: "${data_dir}/input"
+  output:
+    base_dir: "${data_dir}/output"
+
+metadata_admin:
+  metadata_dir: "${data.output.base_dir}/metadata"  # 元数据目录
+
+converter:
+
+preprocessor:
+
+provider:
+
+alchemist:
+
+analyzer:
+
+commander:
+  mode: "test_single"  # 可选: preprocess_only, full, test_single
+runner: 
