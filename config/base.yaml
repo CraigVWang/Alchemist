@@ -17,6 +17,9 @@ converter:
 preprocessor:
 
 provider:
+  ligand:
+  receptor:
+  solvent:
 
 alchemist:
 
