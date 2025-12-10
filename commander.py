@@ -37,9 +37,9 @@ class Commander:
         
     def run_metadata_admin(self):
         """运行元数据管理模块"""
-        print("="*60)
+        print("="*40)
         print("🔄 运行元数据管理模块...")
-        print("="*60)
+        print("="*40)
         
         if self.metadata_admin is None:
             self.metadata_admin = MetadataAdmin(conf=self.metadata_admin_conf)
@@ -47,9 +47,9 @@ class Commander:
 
     def run_converter(self, test_single: bool = False):
         """运行转换模块"""
-        print("="*60)
+        print("="*40)
         print("🔄 运行转换模块...")
-        print("="*60)
+        print("="*40)
         if self.converter is None:
             self.converter = Converter(conf=self.converter_conf)
         
@@ -57,11 +57,11 @@ class Commander:
 
     def run_preprocessor(self, test_single: bool = False):
         """运行预处理模块"""
-        print("="*60)
+        print("="*40)
         print("🚀 开始数据预处理阶段")
         if test_single:
             print("🧪 测试模式：只处理单个样本")
-        print("="*60)
+        print("="*40)
 
         if self.preprocessor is None:
             self.preprocessor = Preprocessor(conf=self.preprocessor_conf)
@@ -69,9 +69,9 @@ class Commander:
 
     def run_provider(self, test_single: bool = False):
         """运行系统准备模块"""
-        print("="*60)
+        print("="*40)
         print("🔄 运行系统准备模块...")
-        print("="*60)
+        print("="*40)
 
         if self.provider is None:
             self.provider = Provider(conf=self.provider_conf)
@@ -79,9 +79,9 @@ class Commander:
 
     def run_alchemist(self, test_single: bool = False):
         """运行炼金术模块"""
-        print("="*60)
+        print("="*40)
         print("🔄 运行炼金术模块...")
-        print("="*60)
+        print("="*40)
 
         if self.alchemist is None:
             self.alchemist = Alchemist(conf=self.alchemist_conf)
@@ -89,9 +89,9 @@ class Commander:
 
     def run_analyzer(self, test_single: bool = False):
         """运行分析模块"""
-        print("="*60)
+        print("="*40)
         print("🔄 运行分析模块...")
-        print("="*60)
+        print("="*40)
 
         if self.analyzer is None:
             self.analyzer = Analyzer(conf=self.analyzer_conf)
@@ -110,12 +110,17 @@ class Commander:
         self.run_alchemist()
         self.run_analyzer()
 
-    def run_single_test(self):
+    def run_single_test(self,test_single: bool = True):
         """运行单一测试"""
+        print("="*40)
         print("🔄 运行单一测试...")
-        # 在这里添加单一测试逻辑
-        pass
-
+        print("="*40)
+        self.run_converter(test_single)
+        self.run_preprocessor(test_single)
+        self.run_provider(test_single)
+        self.run_alchemist(test_single)
+        self.run_analyzer(test_single)
+        
 
 @hydra.main(version_base=None, config_path="./config", config_name="base")
 def main(cfg: DictConfig):

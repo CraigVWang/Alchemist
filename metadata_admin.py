@@ -13,7 +13,8 @@ class MetadataAdmin:
         """
         初始化MetadataAdmin类。
         """
-        self.metadata_admin_conf = conf
+        self.conf = conf
+        self.metadata_admin_conf = self.conf.metadata_admin
         self.metadata_file = Path(self.metadata_admin_conf.metadata_dir) / "metadata.csv"
         self.metadata = []
 
@@ -62,6 +63,105 @@ class MetadataAdmin:
         except Exception as e:
             print(f"❌ 保存元数据失败: {e}")
 
+    def initialize_metadata_file(self):
+        """
+        初始化元数据文件，如果不存在则创建，如果存在则读取
+        """
+        if not self.metadata_file.exists():
+            # 创建新文件
+            columns = [
+                'name',                     # 分子名称
+                'filename',                 # 原始文件名
+                'original_file_path',       # 原始文件路径
+                'relative_path',            # 相对路径
+                'pdb_id',                   # PDB ID
+                'original_file_type',       # 原始文件类型
+                'preprocessed_file_path',   # 预处理后文件路径
+                'preprocessed_file_type',   # 预处理后文件类型
+                'prepared_system_path',     # 准备系统路径
+                'alchemical_result_path',   # 炼金术结果路径
+                'analysis_result_path',     # 分析结果路径
+                
+                # 状态列
+                'preprocess_success',   # 预处理是否成功
+                'preparation_success',   # 最小化是否成功
+                'alchemical_success',  # 炼金术是否成功
+                'analysis_success',    # 分析是否成功
+                'finish_success',      # 全部完成是否成功
+                
+                # 时间戳
+                'preprocess_timestamp',     # 预处理时间
+                'preparation_timestamp',    # 系统准备时间
+                'alchemical_timestamp',     # 炼金术时间
+                'analysis_timestamp',       # 分析时间
+                
+                # 统计信息
+                'ligand_atom_count',        # 配体原子数
+                'free_energy_value',        # 自由能值
+                'free_energy_error',        # 自由能误差
+                'processing_notes'          # 处理备注
+            ]
+            
+            with open(self.metadata_file, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=columns)
+                writer.writeheader()
+            
+            print(f"📄 创建新元数据文件: {self.metadata_file}")
+            return []
+        else:
+            # 读取现有文件
+            print(f"📖 读取现有元数据文件: {self.metadata_file}")
+            with open(self.metadata_file, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                return list(reader)
+            
+    def generate_statistics(self, metadata: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        生成文件统计信息
+        
+        参数:
+            metadata: 元数据列表
+            
+        返回:
+            统计信息字典
+        """
+        stats = {
+            'total_molecules': len(metadata),
+            'file_types': {},
+            'pdb_ids_count': 0,
+            'processed_success': 0,
+            'preparation_success': 0,
+            'alchemical_success': 0,
+            'analysis_success': 0,
+            'finish_success': 0
+        }
+        
+        for item in metadata:
+            # 文件类型统计
+            file_type = item['original_file_type']
+            stats['file_types'][file_type] = stats['file_types'].get(file_type, 0) + 1
+            
+            # PDB ID统计
+            if item.get('pdb_id', 'NAN') != 'NAN':
+                stats['pdb_ids_count'] += 1
+            
+            # 状态统计
+            if item.get('processed_successfully', 'False').lower() == 'true':
+                stats['processed_success'] += 1
+            
+            if item.get('minimized_successfully', 'False').lower() == 'true':
+                stats['preparation_success'] += 1
+            
+            if item.get('alchemical_successfully', 'False').lower() == 'true':
+                stats['alchemical_success'] += 1
+            
+            if item.get('analysis_successfully', 'False').lower() == 'true':
+                stats['analysis_success'] += 1
+            
+            if item.get('finish_successfully', 'False').lower() == 'true':
+                stats['finish_success'] += 1
+        
+        return stats
     def update_molecule_status(self, 
                               molecule_name: str,
                               stage: str,
@@ -183,3 +283,5 @@ class MetadataAdmin:
         print(f"分析成功: {stats['analysis_success']} ({stats.get('analysis_success_rate', 0)*100:.1f}%)")
         print(f"完成全部流程: {stats['finish_success']} ({stats.get('finish_success_rate', 0)*100:.1f}%)")
         print("=" * 40)
+              
+

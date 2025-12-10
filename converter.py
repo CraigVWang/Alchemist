@@ -13,3 +13,6 @@ class Converter:
             conf (DictConfig): 包含转换模块配置的字典配置对象。
         """
         self.converter_conf = conf
+
+
+    
