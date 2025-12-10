@@ -27,43 +27,75 @@ class Commander:
         self.alchemist_conf = self.conf.alchemist
         self.analyzer_conf = self.conf.analyzer
 
-        # 初始化各个模块的实例
-        self.metadata_admin = MetadataAdmin(conf=self.metadata_admin_conf)
-        self.converter = Converter(conf=self.converter_conf)
-        self.preprocessor = Preprocessor(conf=self.preprocessor_conf)
-        self.provider = Provider(conf=self.provider_conf)
-        self.alchemist = Alchemist(conf=self.alchemist_conf)
-        self.analyzer = Analyzer(conf=self.analyzer_conf)
+        # 各个模块的实例设置为None，后续调用时初始化
+        self.metadata_admin = None
+        self.converter = None
+        self.preprocessor = None
+        self.provider = None
+        self.alchemist = None
+        self.analyzer = None
         
-    def run_converter(self):
+    def run_metadata_admin(self):
+        """运行元数据管理模块"""
+        print("="*60)
+        print("🔄 运行元数据管理模块...")
+        print("="*60)
+        
+        if self.metadata_admin is None:
+            self.metadata_admin = MetadataAdmin(conf=self.metadata_admin_conf)
+        
+
+    def run_converter(self, test_single: bool = False):
         """运行转换模块"""
+        print("="*60)
         print("🔄 运行转换模块...")
-        # 在这里添加转换逻辑
-        pass
+        print("="*60)
+        if self.converter is None:
+            self.converter = Converter(conf=self.converter_conf)
+        
+        
 
-    def run_preprocessor(self):
+    def run_preprocessor(self, test_single: bool = False):
         """运行预处理模块"""
-        print("🔄 运行预处理模块...")
-        # 在这里添加预处理逻辑
-        pass
+        print("="*60)
+        print("🚀 开始数据预处理阶段")
+        if test_single:
+            print("🧪 测试模式：只处理单个样本")
+        print("="*60)
 
-    def run_provider(self):
+        if self.preprocessor is None:
+            self.preprocessor = Preprocessor(conf=self.preprocessor_conf)
+        
+
+    def run_provider(self, test_single: bool = False):
         """运行系统准备模块"""
+        print("="*60)
         print("🔄 运行系统准备模块...")
-        # 在这里添加提供者逻辑
-        pass
+        print("="*60)
 
-    def run_alchemist(self):
+        if self.provider is None:
+            self.provider = Provider(conf=self.provider_conf)
+        
+
+    def run_alchemist(self, test_single: bool = False):
         """运行炼金术模块"""
+        print("="*60)
         print("🔄 运行炼金术模块...")
-        # 在这里添加Alchemist逻辑
-        pass
+        print("="*60)
 
-    def run_analyzer(self):
+        if self.alchemist is None:
+            self.alchemist = Alchemist(conf=self.alchemist_conf)
+        
+
+    def run_analyzer(self, test_single: bool = False):
         """运行分析模块"""
+        print("="*60)
         print("🔄 运行分析模块...")
-        # 在这里添加分析逻辑
-        pass
+        print("="*60)
+
+        if self.analyzer is None:
+            self.analyzer = Analyzer(conf=self.analyzer_conf)
+        
 
     def run_preprocessing_only(self):
         """仅运行预处理步骤"""
