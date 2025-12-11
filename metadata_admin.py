@@ -4,6 +4,7 @@ import csv
 from pathlib import Path
 from omegaconf import DictConfig
 from datetime import datetime
+from typing import List, Dict, Any, Optional
 
 class MetadataAdmin:
     """
@@ -16,8 +17,7 @@ class MetadataAdmin:
         self.conf = conf
         self.metadata_admin_conf = self.conf.metadata_admin
         self.metadata_file = Path(self.metadata_admin_conf.metadata_dir) / "metadata.csv"
-        self.metadata = []
-
+        
     def load_metadata(self) -> list:
         """
         加载元数据文件
@@ -26,40 +26,41 @@ class MetadataAdmin:
             元数据列表
         """
         if not self.metadata_file.exists():
-            print(f"❌ 元数据文件不存在: {self.metadata_file}")
+            print(f"❌ 元数据文件不存在: {self.metadata_file}，自动创建空数据文件")
             return []
         
         try:
             with open(self.metadata_file, 'r', newline='', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
-                self.metadata = list(reader)
+                metadata = list(reader)
             print(f"📖 加载元数据: {len(self.metadata)} 个分子")
-            return self.metadata
+            return metadata
         except Exception as e:
-            print(f"❌ 加载元数据失败: {e}")
+            print(f"❌ 加载元数据失败: {e}，自动创建空数据文件")
             return []
     
-    def save_metadata(self):
+    def save_metadata(self, metadata: List[Dict[str, str]]):
         """
         保存元数据到文件
         """
-        if not self.metadata:
+        if not metadata:
             print(f"💾 元数据是空文件")
             
         try:
             # 获取所有可能的列
             all_columns = set()
-            for item in self.metadata:
+            for item in metadata:
                 all_columns.update(item.keys())
             
             # 写入文件
             with open(self.metadata_file, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.DictWriter(f, fieldnames=sorted(all_columns))
                 writer.writeheader()
-                for row in self.metadata:
+                for row in metadata:
                     writer.writerow(row)
             
             print(f"💾 元数据已保存到: {self.metadata_file}")
+            
         except Exception as e:
             print(f"❌ 保存元数据失败: {e}")
 
@@ -114,59 +115,13 @@ class MetadataAdmin:
             with open(self.metadata_file, 'r', newline='', encoding='utf-8') as f:
                 reader = csv.DictReader(f)
                 return list(reader)
-            
-    def generate_statistics(self, metadata: List[Dict[str, str]]) -> Dict[str, Any]:
-        """
-        生成文件统计信息
-        
-        参数:
-            metadata: 元数据列表
-            
-        返回:
-            统计信息字典
-        """
-        stats = {
-            'total_molecules': len(metadata),
-            'file_types': {},
-            'pdb_ids_count': 0,
-            'processed_success': 0,
-            'preparation_success': 0,
-            'alchemical_success': 0,
-            'analysis_success': 0,
-            'finish_success': 0
-        }
-        
-        for item in metadata:
-            # 文件类型统计
-            file_type = item['original_file_type']
-            stats['file_types'][file_type] = stats['file_types'].get(file_type, 0) + 1
-            
-            # PDB ID统计
-            if item.get('pdb_id', 'NAN') != 'NAN':
-                stats['pdb_ids_count'] += 1
-            
-            # 状态统计
-            if item.get('processed_successfully', 'False').lower() == 'true':
-                stats['processed_success'] += 1
-            
-            if item.get('minimized_successfully', 'False').lower() == 'true':
-                stats['preparation_success'] += 1
-            
-            if item.get('alchemical_successfully', 'False').lower() == 'true':
-                stats['alchemical_success'] += 1
-            
-            if item.get('analysis_successfully', 'False').lower() == 'true':
-                stats['analysis_success'] += 1
-            
-            if item.get('finish_successfully', 'False').lower() == 'true':
-                stats['finish_success'] += 1
-        
-        return stats
+
     def update_molecule_status(self, 
+                              metadata: List[Dict[str, str]],
                               molecule_name: str,
                               stage: str,
                               success: bool = True,
-                              additional_info: dict = None):
+                              additional_info: Optional[Dict[str, Any]] = None):
         """
         更新分子的状态信息
         
@@ -176,11 +131,11 @@ class MetadataAdmin:
             success: 该阶段是否成功
             additional_info: 额外的信息字典
         """
-        if not self.metadata:
+        if not metadata:
             return
             
         # 查找分子
-        for item in self.metadata:
+        for item in metadata:
             if item['name'] == molecule_name:
                 # 更新时间戳
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -210,7 +165,7 @@ class MetadataAdmin:
                         success  # 当前的分析阶段是否成功
                     ]
                     finish_success = all(conditions)
-                    item['finish_successfully'] = str(finish_success)
+                    item['finish_success'] = str(finish_success)
                 
                 # 更新额外信息
                 if additional_info:
@@ -218,26 +173,21 @@ class MetadataAdmin:
                         item[key] = str(value) if value is not None else ''
                 
                 break
-    
-    def get_statistics(self) -> dict:
+
+    def generate_statistics(self, metadata: List[Dict[str, str]]) -> Dict[str, Any]:
         """
-        获取处理统计信息
+        生成文件统计信息
         
+        参数:
+            metadata: 元数据列表
+            
         返回:
             统计信息字典
         """
-        if not self.metadata:
-            return {
-                'total_molecules': 0,
-                'preprocess_success': 0,
-                'preparation_success': 0,
-                'alchemical_success': 0,
-                'analysis_success': 0,
-                'finish_success': 0
-            }
-        
         stats = {
-            'total_molecules': len(self.metadata),
+            'total_molecules': len(metadata),
+            'file_types': {},
+            'pdb_ids_count': 0,
             'preprocess_success': 0,
             'preparation_success': 0,
             'alchemical_success': 0,
@@ -245,7 +195,16 @@ class MetadataAdmin:
             'finish_success': 0
         }
         
-        for item in self.metadata:
+        for item in metadata:
+            # 文件类型统计
+            file_type = item['original_file_type']
+            stats['file_types'][file_type] = stats['file_types'].get(file_type, 0) + 1
+            
+            # PDB ID统计
+            if item.get('pdb_id', 'NAN') != 'NAN':
+                stats['pdb_ids_count'] += 1
+            
+            # 状态统计
             if item.get('preprocess_success', 'False').lower() == 'true':
                 stats['preprocess_success'] += 1
             
@@ -261,27 +220,26 @@ class MetadataAdmin:
             if item.get('finish_success', 'False').lower() == 'true':
                 stats['finish_success'] += 1
         
-        # 计算成功率
-        for key in ['preprocess', 'preparation', 'alchemical', 'analysis', 'finish']:
-            total_key = 'total_molecules'
-            success_key = f'{key}_success'
-            if success_key in stats and stats[total_key] > 0:
-                stats[f'{key}_success_rate'] = stats[success_key] / stats[total_key]
-        
         return stats
-    
-    def print_statistics(self):
-        """打印处理统计信息"""
-        stats = self.get_statistics()
-        
-        print("\n📊 处理统计信息:")
-        print("=" * 40)
-        print(f"总分子数: {stats['total_molecules']}")
-        print(f"预处理成功: {stats['preprocess_success']} ({stats.get('preprocess_success_rate', 0)*100:.1f}%)")
-        print(f"系统准备成功: {stats['preparation_success']} ({stats.get('preparation_success_rate', 0)*100:.1f}%)")
-        print(f"炼金术成功: {stats['alchemical_success']} ({stats.get('alchemical_success_rate', 0)*100:.1f}%)")
-        print(f"分析成功: {stats['analysis_success']} ({stats.get('analysis_success_rate', 0)*100:.1f}%)")
-        print(f"完成全部流程: {stats['finish_success']} ({stats.get('finish_success_rate', 0)*100:.1f}%)")
-        print("=" * 40)
-              
 
+    def print_statistics(self, stats: Dict[str, Any]):
+        """
+        打印详细的统计信息
+        
+        参数:
+            stats: 统计信息字典
+        """
+        print("\n📈 文件类型统计:")
+        for file_type, count in stats['file_types'].items():
+            print(f"   - {file_type}: {count} 个文件")
+        
+        print(f"🔍 找到 {stats['pdb_ids_count']} 个可能的PDB ID")
+        
+        print("\n📊 处理状态统计:")
+        print(f"   - 总分子数: {stats['total_molecules']}")
+        print(f"   - 预处理成功: {stats['processed_success']} ({stats['processed_success']/stats['total_molecules']*100:.1f}%)")
+        print(f"   - 系统准备成功: {stats['preparation_success']} ({stats['preparation_success']/stats['total_molecules']*100:.1f}%)")
+        print(f"   - 炼金术成功: {stats['alchemical_success']} ({stats['alchemical_success']/stats['total_molecules']*100:.1f}%)")
+        print(f"   - 分析成功: {stats['analysis_success']} ({stats['analysis_success']/stats['total_molecules']*100:.1f}%)")
+        print(f"   - 完成全部流程: {stats['finish_success']} ({stats['finish_success']/stats['total_molecules']*100:.1f}%)")
+    

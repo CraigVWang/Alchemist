@@ -6,21 +6,23 @@ data:
   data_dir: "./data" # 数据目录
   input:
     inputs_dir: "${data_dir}/inputs" # 输入数据目录
-    raw_dir: "${input.base_dir}/raw" # 输入原始数据目录
+    raw_dir: "${input.inputs_dir}/raw" # 输入原始数据目录
   output:
     outputs_dir: "${data_dir}/outputs" # 输出数据目录
-    preprocessed_dir: "${output.base_dir}/preprocessed" # 预处理数据目录
-    alchemical_dir: "${output.base_dir}/alchemical_results" # 炼金术结果数据目录
-    analysis_dir: "${output.base_dir}/analysis_results" # 分析结果数据目录
-    visualization_dir: "${output.base_dir}/visualizations" # 可视化结果数据目录
+    preprocessed_dir: "${output.outputs_dir}/preprocessed" # 预处理数据目录
+    ligand_dir: "${output.preprocessed_dir}/ligands" # 配体数据目录
+    protein_dir: "${output.preprocessed_dir}/proteins" # 蛋白质数据目录
+    alchemical_dir: "${output.outputs_dir}/alchemical_results" # 炼金术结果数据目录
+    analysis_dir: "${output.outputs_dir}/analysis_results" # 分析结果数据目录
+    visualization_dir: "${output.outputs_dir}/visualizations" # 可视化结果数据目录
   experiments_dir: "${data_dir}/experiments" # 实验数据目录
 
 metadata_admin:
-  metadata_dir: "${data.output.base_dir}/metadata"  # 元数据目录
+  metadata_dir: "${data.output.outputs_dir}/metadata"  # 元数据目录
 
 converter:
 
-preprocessor:
+preprocessor: N
 
 provider:
   ligand:

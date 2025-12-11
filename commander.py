@@ -35,26 +35,9 @@ class Commander:
         self.alchemist = None
         self.analyzer = None
         
-    def run_metadata_admin(self):
-        """运行元数据管理模块"""
-        print("="*40)
-        print("🔄 运行元数据管理模块...")
-        print("="*40)
+        # 初始化并统一元数据
+        self.metadata = []
         
-        if self.metadata_admin is None:
-            self.metadata_admin = MetadataAdmin(conf=self.metadata_admin_conf)
-        
-
-    def run_converter(self, test_single: bool = False):
-        """运行转换模块"""
-        print("="*40)
-        print("🔄 运行转换模块...")
-        print("="*40)
-        if self.converter is None:
-            self.converter = Converter(conf=self.converter_conf)
-        
-        
-
     def run_preprocessor(self, test_single: bool = False):
         """运行预处理模块"""
         print("="*40)
@@ -64,8 +47,10 @@ class Commander:
         print("="*40)
 
         if self.preprocessor is None:
-            self.preprocessor = Preprocessor(conf=self.preprocessor_conf)
+            self.preprocessor = Preprocessor(conf=self.conf)
         
+        result = self.preprocessor.run(test_single)
+        self.metadata = result['metadata']
 
     def run_provider(self, test_single: bool = False):
         """运行系统准备模块"""
@@ -74,7 +59,7 @@ class Commander:
         print("="*40)
 
         if self.provider is None:
-            self.provider = Provider(conf=self.provider_conf)
+            self.provider = Provider(conf=self.conf)
         
 
     def run_alchemist(self, test_single: bool = False):
@@ -84,7 +69,7 @@ class Commander:
         print("="*40)
 
         if self.alchemist is None:
-            self.alchemist = Alchemist(conf=self.alchemist_conf)
+            self.alchemist = Alchemist(conf=self.conf)
         
 
     def run_analyzer(self, test_single: bool = False):
@@ -94,17 +79,19 @@ class Commander:
         print("="*40)
 
         if self.analyzer is None:
-            self.analyzer = Analyzer(conf=self.analyzer_conf)
+            self.analyzer = Analyzer(conf=self.conf)
         
 
     def run_preprocessing_only(self):
         """仅运行预处理步骤"""
-        self.run_converter()
         self.run_preprocessor()
 
     def run_full_pipeline(self):
         """运行完整的工作流程"""
-        self.run_converter()
+        print("="*40)
+        print("🚀 开始数据预处理、系统准备和炼金术阶段")
+        print("="*40)
+        
         self.run_preprocessor()
         self.run_provider()
         self.run_alchemist()
@@ -115,7 +102,7 @@ class Commander:
         print("="*40)
         print("🔄 运行单一测试...")
         print("="*40)
-        self.run_converter(test_single)
+        
         self.run_preprocessor(test_single)
         self.run_provider(test_single)
         self.run_alchemist(test_single)

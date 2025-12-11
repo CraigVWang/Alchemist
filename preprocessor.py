@@ -2,9 +2,13 @@
 
 import os
 import tqdm
+import re
+import shutil
+from typing import List, Dict, Any, Optional
 from omegaconf import DictConfig
 from pathlib import Path
 from metadata_admin import MetadataAdmin
+from converter import Converter
 
 class Preprocessor:
     """
@@ -12,7 +16,7 @@ class Preprocessor:
     """
     
     # 类常量 - 支持的所有格式
-    SUPPORTED_EXTENSIONS = {'.pdb', '.cif', '.mol',, '.mol2', '.sdf', '.xyz'}
+    SUPPORTED_EXTENSIONS = {'.pdb', '.cif', '.mol', '.mol2', '.sdf', '.xyz'}
     FILE_TYPE_MAPPING = {
         '.pdb': 'pdb',
         '.cif': 'cif',  # mmCIF 文件使用 .cif 扩展名
@@ -28,16 +32,20 @@ class Preprocessor:
         参数:
             config: Hydra配置对象
         """
+        print("="*40)
+        print("\n🔧 初始化预处理器...")
         # 导入配置
         self.conf = conf
         self.preprocessor_conf = self.conf.preprocessor
 
         # 导入目录
-        self.data_dir = self.conf.data.datadir
+        self.data_dir = self.conf.data.data_dir
         self.inputs_dir = self.conf.data.input.inputs_dir
         self.raw_dir = self.conf.data.input.raw_dir
         self.outputs_dir = self.conf.data.output.outputs_dir
         self.preprocessed_dir = self.conf.data.output.preprocessed_dir
+        self.ligand_dir = self.conf.data.output.ligand_dir
+        self.protein_dir = self.conf.data.output.protein_dir
         self.alchemical_dir = self.conf.data.output.alchemical_dir
         self.analysis_dir = self.conf.data.output.analysis_dir
         self.visualization_dir = self.conf.data.output.visualization_dir
@@ -46,6 +54,12 @@ class Preprocessor:
 
         # 初始化metadata实例
         self._metadata_admin = MetadataAdmin(conf=conf)
+        self._converter = Converter(conf=conf)
+        self.setup_directories()
+        print("📂 目录设置完成:")
+        print("✅ 预处理器初始化成功!\n")
+        print("="*40)
+
     def setup_directories(self):
         """根据配置创建必要的目录结构"""
         # 创建目录列表并遍历，依次创建目录
@@ -55,6 +69,8 @@ class Preprocessor:
         self.raw_dir,
         self.outputs_dir,
         self.preprocessed_dir,
+        self.ligand_dir,
+        self.protein_dir,
         self.alchemical_dir,
         self.analysis_dir,
         self.visualization_dir,
@@ -74,6 +90,8 @@ class Preprocessor:
         print(f"   - 原始数据目录: {self.raw_dir}")
         print(f"   - 输出数据文件: {self.outputs_dir}")
         print(f"   - 预处理数据文件: {self.preprocessed_dir}")
+        print(f"   - 配体分子文件: {self.ligand_dir}")
+        print(f"   - 蛋白质文件: {self.protein_dir}")
         print(f"   - 炼金术数据文件: {self.alchemical_dir}")
         print(f"   - 分析数据文件: {self.analysis_dir}")
         print(f"   - 可视化数据文件: {self.visualization_dir}")
@@ -125,21 +143,16 @@ class Preprocessor:
         返回:
             包含文件信息的字典列表
         """
-        root_dir = self.config.dataset.raw_directory
+        root_dir = self.raw_dir
         
         # 创建现有分子的查找字典
         existing_molecules = {item['name']: item for item in existing_metadata}
         new_data = []
-        
-        # 处理选定的文件格式
-        if self.selected_formats:
-            selected_extensions = {f'.{fmt.lower()}' for fmt in self.selected_formats}
-            supported_extensions = self.SUPPORTED_EXTENSIONS.intersection(selected_extensions)
-            print(f"🔍 处理以下格式的文件: {', '.join(self.selected_formats)}")
-        else:
-            supported_extensions = self.SUPPORTED_EXTENSIONS
-            print(f"🔍 处理所有支持格式的文件")
-        
+
+        print("="*40)
+        print(f"🔍 处理所有支持格式的文件")
+        supported_extensions = self.SUPPORTED_EXTENSIONS
+              
         print(f"📁 开始扫描目录: {root_dir}")
         
         # 收集所有文件
@@ -185,11 +198,11 @@ class Preprocessor:
                     'alchemical_result_path': '',
                     'analysis_result_path': '',
                     
-                    'processed_successfully': 'False',
-                    'minimized_successfully': 'False',
-                    'alchemical_successfully': 'False',
-                    'analysis_successfully': 'False',
-                    'finish_successfully': 'False',
+                    'preprocess_success': 'False',
+                    'preparation_success': 'False',
+                    'alchemical_success': 'False',
+                    'analysis_success': 'False',
+                    'finish_success': 'False',
                     
                     'preprocess_timestamp': '',
                     'preparation_timestamp': '',
@@ -206,14 +219,15 @@ class Preprocessor:
         merged_data = existing_metadata + new_data
         
         print(f"✅ 找到 {len(merged_data)} 个分子（{len(existing_molecules)} 个现有 + {len(new_data)} 个新）")
+        print("="*40)
         return merged_data
     
-    def process_molecule_file(self, file_path: str, mol_name: str, file_type: str, relative_path: str) -> Optional[str]:
+    def process_molecule_file(self, input_path: str, mol_name: str, file_type: str, relative_path: str) -> Optional[str]:
         """
         处理分子文件 - 复制或转换格式，保持目录结构
         
         参数:
-            file_path: 输入文件路径
+            input_path: 输入文件路径
             mol_name: 分子名称
             file_type: 文件类型
             relative_path: 相对于原始目录的路径
@@ -222,45 +236,42 @@ class Preprocessor:
             处理后的文件路径，如果失败返回None
         """
         # 构建输出目录路径，保持原始目录结构
-        output_dir = self.preprocessed_dir / relative_path
-        output_dir.mkdir(parents=True, exist_ok=True)
+                
+        mol_output_dir = Path(self.ligand_dir) / relative_path
+        mol_output_dir.mkdir(parents=True, exist_ok=True)
+        pdb_output_dir = Path(self.protein_dir) / relative_path
+        pdb_output_dir.mkdir(parents=True, exist_ok=True)
         
         # 确定输出文件路径和格式
-        if file_type in ['pdb', 'cif', 'mol2', 'sdf']:
+        if file_type in ['pdb', 'cif',]:
             # 对于这些格式，保持原格式，直接复制
-            output_path = output_dir / Path(file_path).name
+            pdb_output_path = pdb_output_dir / Path(input_path).name
             try:
-                shutil.copy2(file_path, output_path)
-                return str(output_path)
+                shutil.copy2(input_path, pdb_output_path)
+                return str(pdb_output_path), None
             except Exception as e:
-                print(f"❌ 复制失败 {file_path}: {e}")
+                print(f"❌ 复制失败 {input_path}: {e}")
                 return None
+        
+        if file_type in ['mol', 'mol2', 'sdf']:
+            # 对于这些格式，保持原格式，直接复制
+            mol_output_path = mol_output_dir / Path(input_path).name
+            try:
+                shutil.copy2(input_path, mol_output_path)
+                return str(mol_output_path), None
+            except Exception as e:
+                print(f"❌ 复制失败 {input_path}: {e}")
+                return None
+            
         elif file_type == 'xyz':
             # XYZ 文件转换为 MOL2 格式
-            output_path = output_dir / f"{mol_name}.mol2"
-            
-            try:
-                # 使用新的转换器将 XYZ 转换为 MOL2
-                mol2_path = convert_xyz_to_mol2(
-                    file_path, 
-                    str(output_path),
-                    residue_name="LIG",
-                    chain="A"
-                )
-                
-                if mol2_path:
-                    print(f"✅ XYZ 文件已转换为 MOL2: {Path(mol2_path).name}")
-                    return mol2_path
-                else:
-                    print(f"❌ XYZ 转换失败: {file_path}")
-                    return None
-                    
-            except Exception as e:
-                print(f"❌ XYZ 转换失败 {file_path}: {e}")
-                return None
+            mol_path, pdb_path = self._converter.convert(input_path, mol_name, file_type, relative_path)
+            return mol_path, pdb_path
+        
         else:
-            print(f"⚠️ 跳过不支持的文件格式: {file_path}")
+            print(f"⚠️ 跳过不支持的文件格式: {input_path}")
             return None
+        
     
     def batch_process_files(self, metadata: List[Dict[str, str]], test_single: bool = False) -> List[Dict[str, str]]:
         """
@@ -292,7 +303,7 @@ class Preprocessor:
             relative_path = item['relative_path']
             
             # 如果已经处理成功，跳过
-            if item.get('processed_successfully', 'False').lower() == 'true':
+            if item.get('preprocess_success', 'False').lower() == 'true':
                 data_iterator.set_postfix_str(f"跳过: {successful_processing}/{total_to_process}")
                 continue
             
@@ -300,30 +311,34 @@ class Preprocessor:
             output_file = self.process_molecule_file(input_file, mol_name, file_type, relative_path)
                            
             if output_file:
-                # 确定输出文件类型
-                output_path = Path(output_file)
-                output_file_type = output_path.suffix[1:]  # 去掉点号
-                
-                # 更新元数据
-                self.update_molecule_status(
-                    metadata=metadata,
-                    molecule_name=mol_name,
-                    stage='preprocess',
-                    success=True,
-                    additional_info={
-                        'preprocessed_file_path': output_file,
-                        'preprocessed_file_type': output_file_type
-                    }
-                )
-                
-                successful_processing += 1
-                # 更新进度条描述
-                data_iterator.set_postfix_str(f"成功: {successful_processing}/{total_to_process}")
+                for i in range(2):
+                    # 确定输出文件类型
+                    if output_file[i] is not None:
+                        output_path = Path(output_file[i])
+                        output_file_type = output_path.suffix[1:]  # 去掉点号
+                        
+                        # 更新元数据
+                        self._metadata_admin.update_molecule_status(
+                            metadata=metadata,
+                            molecule_name=mol_name,
+                            stage='preprocess',
+                            success=True,
+                            additional_info={
+                                'preprocessed_file_path': output_file,
+                                'preprocessed_file_type': output_file_type
+                            }
+                        )
+                        
+                        successful_processing += 1
+                        # 更新进度条描述
+                        data_iterator.set_postfix_str(f"成功: {successful_processing}/{total_to_process}")
+                    else:
+                        continue
 
             else:
                 print(f"❌ 处理失败: {input_file}")
                 # 更新状态为失败
-                self.update_molecule_status(
+                self._metadata_admin.update_molecule_status(
                     metadata=metadata,
                     molecule_name=mol_name,
                     stage='preprocess',
@@ -367,14 +382,14 @@ class Preprocessor:
         self._metadata_admin.save_metadata(metadata)
         
         # 生成统计信息
-        stats = self.generate_statistics(metadata)
+        stats = self._metadata_admin.generate_statistics(metadata)
         self._metadata_admin.print_statistics(stats)
         
         result = {
             'success': True,
             'total_molecules': len(metadata),
-            'processed_success': stats['processed_success'],
-            'processing_success_rate': stats['processed_success']/len(metadata) if len(metadata) > 0 else 0,
+            'preprocess_success': stats['preprocess_success'],
+            'preprocess_success_rate': stats['preprocess_success']/len(metadata) if len(metadata) > 0 else 0,
             'metadata_file': str(self.metadata_file),
             'metadata': metadata  # 返回元数据供后续阶段使用
         }
