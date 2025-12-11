@@ -1,4 +1,8 @@
-"""The module that create the pipeline of the whole workflow."""
+"""
+The module that create the pipeline of the whole workflow.
+Version:1.0
+Author:CraigVWang
+"""
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -28,8 +32,6 @@ class Commander:
         self.analyzer_conf = self.conf.analyzer
 
         # 各个模块的实例设置为None，后续调用时初始化
-        self.metadata_admin = None
-        self.converter = None
         self.preprocessor = None
         self.provider = None
         self.alchemist = None
@@ -61,7 +63,8 @@ class Commander:
         if self.provider is None:
             self.provider = Provider(conf=self.conf)
         
-
+        self.provider.run_preparation(self.metadata, test_single)
+        
     def run_alchemist(self, test_single: bool = False):
         """运行炼金术模块"""
         print("="*40)

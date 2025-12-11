@@ -5,29 +5,81 @@
 data:
   data_dir: "./data" # 数据目录
   input:
-    inputs_dir: "${data_dir}/inputs" # 输入数据目录
-    raw_dir: "${input.inputs_dir}/raw" # 输入原始数据目录
+    inputs_dir: "${data.data_dir}/inputs" # 输入数据目录
+    raw_dir: "${data.input.inputs_dir}/raw" # 输入原始数据目录
   output:
-    outputs_dir: "${data_dir}/outputs" # 输出数据目录
-    preprocessed_dir: "${output.outputs_dir}/preprocessed" # 预处理数据目录
-    ligand_dir: "${output.preprocessed_dir}/ligands" # 配体数据目录
-    protein_dir: "${output.preprocessed_dir}/proteins" # 蛋白质数据目录
-    alchemical_dir: "${output.outputs_dir}/alchemical_results" # 炼金术结果数据目录
-    analysis_dir: "${output.outputs_dir}/analysis_results" # 分析结果数据目录
-    visualization_dir: "${output.outputs_dir}/visualizations" # 可视化结果数据目录
-  experiments_dir: "${data_dir}/experiments" # 实验数据目录
+    outputs_dir: "${data.data_dir}/outputs" # 输出数据目录
+    preprocessed_dir: "${data.output.outputs_dir}/preprocessed" # 预处理数据目录
+    prepared_systems_dir: "${data.output.outputs_dir}/prepared_systems"  # 系统准备结果目录
+    ligand_dir: "${data.output.preprocessed_dir}/ligands" # 配体数据目录
+    protein_dir: "${data.output.preprocessed_dir}/proteins" # 蛋白质数据目录
+    alchemical_dir: "${data.output.outputs_dir}/alchemical_results" # 炼金术结果数据目录
+    analysis_dir: "${data.output.outputs_dir}/analysis_results" # 分析结果数据目录
+    visualization_dir: "${data.output.outputs_dir}/visualizations" # 可视化结果数据目录
+  experiments_dir: "${data.data_dir}/experiments" # 实验数据目录
 
 metadata_admin:
   metadata_dir: "${data.output.outputs_dir}/metadata"  # 元数据目录
 
 converter:
 
-preprocessor: N
+preprocessor: 
 
 provider:
-  ligand:
-  receptor:
+  # 力场配置
+  forcefield:
+    protein: "amber14/protein.ff14SB.xml"
+    ligand: GAFF
+    solvent: "amber14/tip3p.xml"
+  # 系统创建配置
+  system:
+    add_hydrogens: true  # 使用Modeller.addHydrogens()添加氢原子
+    nonbonded_method: "PME"  # PME, NoCutoff, CutoffNonPeriodic, CutoffPeriodic
+    cutoff: 1.0  # nm，PME截止距离
+    constraints: "HBonds"  # None, HBonds, AllBonds, HAngles
+    rigid_water: true
+    ewald_error_tolerance: 0.0005
+    centering_threshold: 0.1  # nm，大于此值则进行居中修正
+  
+  # 溶剂化配置
   solvent:
+    model: "tip3p"  # 溶剂模型
+    box_size: 8.0  # nm，立方盒子边长（8.0×8.0×8.0 nm盒子）
+    padding: null  # nm，可选，分子到盒子边缘的距离
+    positive_ion: null  # 正离子
+    negative_ion: null  # 负离子
+    ionic_strength: null  # M，离子强度（不添加离子）
+  
+  # 积分器配置
+  integrator:
+    temperature: 300.0  # K
+    friction_coeff: 1.0  # 1/ps
+    time_step: 2.0  # fs
+  
+  # 平台配置
+  platform:
+    use_cuda: true  # 使用GPU加速
+    device_index: "0"  # GPU设备索引
+    precision: "mixed"  # mixed, single, double
+  
+  # 能量最小化配置
+  minimization:
+    max_iterations: 1000  # 最大迭代次数
+    tolerance: 10.0  # kJ/mol，能量收敛容差
+  
+  # 加热配置
+  heating:
+    initial_temperature: 50.0  # K，初始温度
+    target_temperature: 300.0  # K，目标温度
+    temperature_step: 50.0  # K，温度步长
+    steps_per_temperature: 5000  # 每温度步数
+  
+  # 平衡配置
+  equilibration:
+    use_barostat: true  # 使用压力控制
+    pressure: 1.0  # atm，目标压力
+    barostat_frequency: 25  # 压力控制频率
+    npt_steps: 50000  # NPT平衡步数
 
 alchemist:
 

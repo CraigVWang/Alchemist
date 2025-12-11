@@ -1,4 +1,8 @@
-"""The module that handles conversion of the molecular and protein data formats."""
+"""
+The module that handles conversion of the molecular and protein data formats.
+Version:1.0
+Author:CraigVWang
+"""
 
 from omegaconf import DictConfig
 from pathlib import Path

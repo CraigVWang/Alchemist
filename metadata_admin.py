@@ -1,4 +1,8 @@
-"""The module that handles metadata administration."""
+"""
+The module that handles metadata administration.
+Version:1.0
+Author:CraigVWang
+"""
 
 import csv
 from pathlib import Path
@@ -42,19 +46,24 @@ class MetadataAdmin:
     def save_metadata(self, metadata: List[Dict[str, str]]):
         """
         保存元数据到文件
+        参数:
+            metadata: 元数据字典列表
         """
         if not metadata:
             print(f"💾 元数据是空文件")
+            return
             
         try:
             # 获取所有可能的列
-            all_columns = set()
+            all_columns = []
             for item in metadata:
-                all_columns.update(item.keys())
+                for key in item.keys():
+                    all_columns.append(key)
+                break
             
             # 写入文件
             with open(self.metadata_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=sorted(all_columns))
+                writer = csv.DictWriter(f, fieldnames=all_columns)
                 writer.writeheader()
                 for row in metadata:
                     writer.writerow(row)
@@ -237,7 +246,7 @@ class MetadataAdmin:
         
         print("\n📊 处理状态统计:")
         print(f"   - 总分子数: {stats['total_molecules']}")
-        print(f"   - 预处理成功: {stats['processed_success']} ({stats['processed_success']/stats['total_molecules']*100:.1f}%)")
+        print(f"   - 预处理成功: {stats['preprocess_success']} ({stats['preprocess_success']/stats['total_molecules']*100:.1f}%)")
         print(f"   - 系统准备成功: {stats['preparation_success']} ({stats['preparation_success']/stats['total_molecules']*100:.1f}%)")
         print(f"   - 炼金术成功: {stats['alchemical_success']} ({stats['alchemical_success']/stats['total_molecules']*100:.1f}%)")
         print(f"   - 分析成功: {stats['analysis_success']} ({stats['analysis_success']/stats['total_molecules']*100:.1f}%)")

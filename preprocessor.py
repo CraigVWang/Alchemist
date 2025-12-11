@@ -1,9 +1,13 @@
-"""The module that handles preprocessing of molecular data before alchemical calculations."""
+"""
+The module that handles preprocessing of molecular data before alchemical calculations.
+Version:1.0
+Author:CraigVWang
+"""
 
 import os
-import tqdm
 import re
 import shutil
+from tqdm import tqdm
 from typing import List, Dict, Any, Optional
 from omegaconf import DictConfig
 from pathlib import Path
@@ -36,7 +40,7 @@ class Preprocessor:
         print("\n🔧 初始化预处理器...")
         # 导入配置
         self.conf = conf
-        self.preprocessor_conf = self.conf.preprocessor
+        self.metadata_file = Path(self.conf.metadata_admin.metadata_dir) / "metadata.csv"
 
         # 导入目录
         self.data_dir = self.conf.data.data_dir
@@ -44,6 +48,7 @@ class Preprocessor:
         self.raw_dir = self.conf.data.input.raw_dir
         self.outputs_dir = self.conf.data.output.outputs_dir
         self.preprocessed_dir = self.conf.data.output.preprocessed_dir
+        self.prepared_systems_dir = self.conf.data.output.prepared_systems_dir
         self.ligand_dir = self.conf.data.output.ligand_dir
         self.protein_dir = self.conf.data.output.protein_dir
         self.alchemical_dir = self.conf.data.output.alchemical_dir
@@ -69,6 +74,7 @@ class Preprocessor:
         self.raw_dir,
         self.outputs_dir,
         self.preprocessed_dir,
+        self.prepared_systems_dir,
         self.ligand_dir,
         self.protein_dir,
         self.alchemical_dir,
@@ -90,6 +96,7 @@ class Preprocessor:
         print(f"   - 原始数据目录: {self.raw_dir}")
         print(f"   - 输出数据文件: {self.outputs_dir}")
         print(f"   - 预处理数据文件: {self.preprocessed_dir}")
+        print(f"   - 系统数据文件: {self.prepared_systems_dir}")
         print(f"   - 配体分子文件: {self.ligand_dir}")
         print(f"   - 蛋白质文件: {self.protein_dir}")
         print(f"   - 炼金术数据文件: {self.alchemical_dir}")
@@ -248,7 +255,8 @@ class Preprocessor:
             pdb_output_path = pdb_output_dir / Path(input_path).name
             try:
                 shutil.copy2(input_path, pdb_output_path)
-                return str(pdb_output_path), None
+                pdb_output_path = "./" + str(pdb_output_path)
+                return pdb_output_path, None
             except Exception as e:
                 print(f"❌ 复制失败 {input_path}: {e}")
                 return None
@@ -258,7 +266,8 @@ class Preprocessor:
             mol_output_path = mol_output_dir / Path(input_path).name
             try:
                 shutil.copy2(input_path, mol_output_path)
-                return str(mol_output_path), None
+                mol_output_path = "./" + str(mol_output_path)
+                return mol_output_path, None
             except Exception as e:
                 print(f"❌ 复制失败 {input_path}: {e}")
                 return None
@@ -367,6 +376,7 @@ class Preprocessor:
         # 初始化元数据文件
         metadata = self._metadata_admin.initialize_metadata_file()
         
+        
         # 扫描目录并更新元数据
         metadata = self.scan_directory(metadata)
         
@@ -380,7 +390,8 @@ class Preprocessor:
         
         # 保存元数据
         self._metadata_admin.save_metadata(metadata)
-        
+        print("=" * 40)
+
         # 生成统计信息
         stats = self._metadata_admin.generate_statistics(metadata)
         self._metadata_admin.print_statistics(stats)
