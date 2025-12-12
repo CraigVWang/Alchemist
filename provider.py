@@ -242,7 +242,7 @@ class Provider:
         # 添加溶剂
         print("  💧 添加溶剂...")
         
-        box_size = self.solvent_conf.get('box_size', 8.0) * unit.nanometers
+        box_size = self.solvent_conf.get('box_size', 8.0)
         solvent_model = self.solvent_conf.get('model', 'tip3p')
         
         # 获取额外的溶剂参数
@@ -260,14 +260,13 @@ class Provider:
             modeller.addSolvent(
                 forcefield, 
                 model=solvent_model, 
-                boxSize=Vec3(box_size, box_size, box_size),
                 **solvent_params
             )
         else:
             modeller.addSolvent(
                 forcefield, 
                 model=solvent_model, 
-                boxSize=Vec3(box_size, box_size, box_size)
+                boxSize=Vec3(box_size, box_size, box_size) * unit.nanometers
             )
         
         # 分子居中
@@ -359,7 +358,7 @@ class Provider:
         print("  🔽 执行能量最小化...")
         
         max_iterations = self.minimization_conf.get('max_iterations', 1000)
-        tolerance = self.minimization_conf.get('tolerance', 10.0) * unit.kilojoule_per_mole
+        tolerance = self.minimization_conf.get('tolerance', 10.0) * unit.kilojoule_per_mole / unit.nanometer
         
         simulation.minimizeEnergy(maxIterations=max_iterations, tolerance=tolerance)
         
@@ -392,10 +391,9 @@ class Provider:
             simulation.step(steps_per_temp)
             current_temp = next_temp
         
-        state = simulation.context.getState(getPositions=True, getTemperature=True)
-        current_temp_value = state.getTemperature()
-        
-        print(f"  ✅ 加热完成，当前温度: {current_temp_value}")
+        state = simulation.context.getState(positions=True)
+                
+        print(f"  ✅ 加热完成，当前温度: {current_temp}")
         
         return state.getPositions()
     
@@ -422,20 +420,17 @@ class Provider:
         
         # 获取平衡后的状态
         state = simulation.context.getState(
-            getPositions=True, 
-            getEnergy=True,
-            getTemperature=True,
-            getVolume=True
+            positions=True, 
+            energy=True,
+            parameters=True
         )
         
         potential_energy = state.getPotentialEnergy()
-        temperature = state.getTemperature()
-        volume = state.getVolume()
+        
         
         print(f"  ✅ 平衡完成:")
         print(f"     能量: {potential_energy}")
         print(f"     温度: {temperature}")
-        print(f"     体积: {volume}")
         
         return state.getPositions()
     
@@ -512,13 +507,10 @@ class Provider:
             )
             
             final_positions = state.getPositions()
-            final_velocities = state.getVelocities()
-            potential_energy = state.getPotentialEnergy()
-            forces = state.getForces()
-            
+                        
             # 保存准备好的系统
             relative_path = mol_info.get('relative_path', '')
-            output_path = self.prepared_systems_dir / relative_path / f"{mol_name}_prepared.pdb"
+            output_path = Path(self.prepared_systems_dir) / relative_path / f"{mol_name}_prepared.pdb"
             
             self.save_prepared_system(modeller.topology, final_positions, output_path)
             
@@ -529,15 +521,9 @@ class Provider:
                 'topology': modeller.topology,
                 'system': system,
                 'positions': final_positions,
-                'velocities': final_velocities,
-                'potential_energy': potential_energy,
-                'forces': forces,
                 'ligand_atom_count': ligand_atom_count,
                 'output_path': str(output_path),
-                'simulation': simulation,
-                'forcefield': self.create_forcefield(mol),
-                'box_vectors': modeller.topology.getPeriodicBoxVectors()
-            }
+                }
             
             # 更新状态
             if update_callback:
@@ -691,9 +677,9 @@ class Provider:
         """保存简化的结果文件（用于调试）"""
         if not results:
             return
-            
-        output_csv = self.prepared_systems_dir / "preparation_summary.csv"
-        
+
+        output_csv = Path(self.prepared_systems_dir) / "preparation_summary.csv"
+
         simplified_results = []
         for result in results:
             simplified_results.append({
@@ -725,7 +711,7 @@ class Provider:
             return
         
         # 保存完整的准备结果
-        output_pkl = self.prepared_systems_dir / "preparation_results.pkl"
+        output_pkl = Path(self.prepared_systems_dir) / "preparation_results.pkl"
         
         try:
             with open(output_pkl, 'wb') as f:

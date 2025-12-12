@@ -333,7 +333,7 @@ class Preprocessor:
                             stage='preprocess',
                             success=True,
                             additional_info={
-                                'preprocessed_file_path': output_file,
+                                'preprocessed_file_path': output_file[i],
                                 'preprocessed_file_type': output_file_type
                             }
                         )

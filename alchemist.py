@@ -1,4 +1,8 @@
-""" The module that handles alchemical free energy operations and calculations. """
+"""
+The module that handles alchemical free energy operations and calculations. 
+Version:1.0
+Author:CraigVWang
+"""
 
 from omegaconf import DictConfig
 

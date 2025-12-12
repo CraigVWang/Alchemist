@@ -1,0 +1,2 @@
+name,success,output_path,ligand_atom_count,energy
+FXR_12,True,data/outputs/prepared_systems/PyAutoFep/lig_data/FXR_12_prepared.pdb,57,N/A

@@ -22,8 +22,8 @@ class Converter:
         self.conf = conf
 
         # 设置输出目录
-        self.ligand_dir = Path(self.conf.data.output.ligand_dir)
-        self.protein_dir = Path(self.conf.data.output.protein_dir)
+        self.ligand_dir = self.conf.data.output.ligand_dir
+        self.protein_dir = self.conf.data.output.protein_dir
 
     def parse_xyz_file(self, xyz_file):
         """
@@ -331,9 +331,9 @@ class Converter:
             relative_path (Path): 输出文件的相对目录路径。
         """
         if file_type == "xyz":
-            mol_output_path = self.ligand_dir / relative_path / f"{mol_name}.mol"
+            mol_output_path = Path(self.ligand_dir) / relative_path / f"{mol_name}.mol"
             mol_output_path.parent.mkdir(parents=True, exist_ok=True)
-            pdb_output_path = self.protein_dir / relative_path / f"{mol_name}.pdb"
+            pdb_output_path = Path(self.protein_dir) / relative_path / f"{mol_name}.pdb"
             pdb_output_path.parent.mkdir(parents=True, exist_ok=True)
 
             print("="*40)
