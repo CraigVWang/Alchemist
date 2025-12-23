@@ -1,0 +1,16 @@
+Ligand_ID,SMILES
+FXR_17,CCOC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_45,CCOC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccc(OC(F)(F)F)cc4)S(=O)(=O)c5cccs5)cc1
+FXR_46,NC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_47,CCOC(=O)c1cccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)c1
+FXR_48,CCOC(=O)Cc1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_49,CC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_91,O=C(Nc1ccccc1)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5
+FXR_93,O=C(Nc1ccccc1)n2c3CN(CCc3cc2c4ccccc4)S(=O)(=O)c5cccs5
+FXR_95,CC(=O)Nc1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_96,CN(C)C(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_98,CNC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_99,COc1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_100,NS(=O)(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_101,OC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
+FXR_102,O=C(Nc1ccc(cc1)C(=O)N2CCOCC2)c3c4CN(CCc4nn3c5ccccc5)S(=O)(=O)c6cccs6

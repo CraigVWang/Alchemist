@@ -1,0 +1,4 @@
+# Conf
+
+dataset:
+  SMILES_csv_path: "./dataset/FXR/FEP_set_1.csv"
