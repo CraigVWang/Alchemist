@@ -1,4 +1,0 @@
-Ligand_ID,SMILES
-FXR_17,CCOC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
-FXR_45,CCOC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccc(OC(F)(F)F)cc4)S(=O)(=O)c5cccs5)cc1
-FXR_46,NC(=O)c1ccc(NC(=O)c2c3CN(CCc3nn2c4ccccc4)S(=O)(=O)c5cccs5)cc1
