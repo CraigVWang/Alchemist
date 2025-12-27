@@ -14,6 +14,7 @@ import openfe
 from openfe import SmallMoleculeComponent
 from rdkit import Chem
 from rdkit.Chem import AllChem
+import dimorphite_dl
 from openfe.protocols.openmm_utils.omm_settings import OpenFFPartialChargeSettings
 from openfe.protocols.openmm_utils.charge_generation import bulk_assign_partial_charges
 from openfe.utils.atommapping_network_plotting import plot_atommapping_network
@@ -22,6 +23,9 @@ from openfe.protocols.openmm_rfe import RelativeHybridTopologyProtocol
 
 from openff.units import unit
 from pathlib import Path
+import os
+import glob
+import subprocess
 
 class Alchemist:
     def __init__(self, csv_path, receptor_file_path):
@@ -31,11 +35,12 @@ class Alchemist:
         self.set_name = csv_path.split('/')[-1].split('.')[0]
         self.receptor_file_path = receptor_file_path
         self.network_setup_dir = Path(f"./network_setup/{self.set_name}")
-        self.transformation_dir = self.network_setup_dir / f"transformations_{self.set_name}"
+        self.transformations_dir = self.network_setup_dir / f"transformations_{self.set_name}"
+        self.results_dir = Path("./results")
         
         # Create the directory
         self.network_setup_dir.mkdir(parents=True, exist_ok=True)
-        self.transformation_dir.mkdir(parents=True, exist_ok=True)
+        self.transformations_dir.mkdir(parents=True, exist_ok=True)
         
     def run_preprocessor(self, *, rhfe_only: bool=False):
         # Read in the ligand data
@@ -46,9 +51,10 @@ class Alchemist:
         for index, row in ligand_df.iterrows():
             ligand_id = row['Ligand_ID']
             smiles_string = row['SMILES']
-            mol = Chem.MolFromSmiles(smiles_string)
+            mol = self.protonizer(smiles_string, ph=7.4)
             mol_h = Chem.AddHs(mol)
-            AllChem.EmbedMolecule(mol_h, randomSeed=0)
+            AllChem.EmbedMolecule(mol_h, AllChem.ETKDG())
+            AllChem.MMFFOptimizeMolecule(mol_h, mmffVariant='MMFF94s', maxIters=500)
             small_mol = SmallMoleculeComponent.from_rdkit(mol_h, ligand_id)
             ligands.append(small_mol)
 
@@ -171,14 +177,68 @@ class Alchemist:
 
         # Write out each transformation
         for transformation in network.edges:
-            transformation.to_json(self.transformation_dir / f"{transformation.name}.json")
+            transformation.to_json(self.transformations_dir / f"{transformation.name}.json")
 
         return 0
     
-    def protonizer(self, input_file):
+    def protonizer(self, smiles_string, ph=7.4):
         """
         Protonize the ligands and protein.
         """
+        protonated_smiles_list = dimorphite_dl.run(
+                                smiles=smiles_string,
+                                min_ph=ph,
+                                max_ph=ph
+                                )
+
+        print(f"在pH {ph}下，共枚举到 {len(protonated_smiles_list)} 种状态，选择第一个状态:\n   {protonated_smiles_list[0][0]}。")
+        return Chem.MolFromSmiles(protonated_smiles_list[0][0])
+
+    def run_calculater(self):
+        # 获取所有JSON文件
+        json_files = glob.glob(os.path.join(self.transformations_dir, "*.json"))
+
+        for json_file in json_files:
+            # 使用Path对象更安全地处理路径
+            json_path = Path(json_file)
+            
+            # 获取相对路径（从transformations目录开始）
+            relpath = json_path.relative_to(self.transformations_dir)
+            
+            # 去掉扩展名得到目录路径
+            dirpath = relpath.with_suffix('')
+            
+            # 循环三次重复实验
+            for repeat in range(1, 4):
+                # 构建输出文件和目录路径
+                output_file = self.results_dir / f"repeat{repeat}" / relpath
+                output_dir = self.results_dir / f"repeat{repeat}" / dirpath
+                
+                # 确保目录存在
+                output_dir.parent.mkdir(parents=True, exist_ok=True)
+                
+                # 构建命令
+                cmd = [
+                    "openfe", "quickrun",
+                    str(json_path),
+                    "-o", str(output_file),
+                    "-d", str(output_dir)
+                ]
+                
+                # 打印命令以便调试
+                print(f"Running: {' '.join(cmd)}")
+                
+                try:
+                    # 运行命令
+                    subprocess.run(cmd, check=True, capture_output=True, text=True)
+                    print(f"Success: {json_file} -> repeat{repeat}")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error running command for {json_file} (repeat{repeat}):")
+                    print(f"  Command: {' '.join(cmd)}")
+                    print(f"  Error: {e.stderr}")
+                    continue  # 继续下一个文件
+    def run_analyzer(self):
+        pass
 
 
 if __name__ == '__main__':
